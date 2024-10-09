@@ -1,24 +1,15 @@
 <script setup lang="ts">
-import {
-  type MaybeRefOrGetter,
-  computed,
-  inject,
-  reactive,
-  ref,
-  toRef,
-  toValue,
-} from 'vue'
-import { injectKeyStore } from './types'
+import { computed, inject, reactive, useTemplateRef } from 'vue'
+import { injectKeyPreviewRef, injectKeyProps } from './types'
 
 const props = defineProps<{ layout?: 'horizontal' | 'vertical' }>()
 const isVertical = computed(() => props.layout === 'vertical')
 
-const container = ref()
-const previewRef = inject<MaybeRefOrGetter<HTMLDivElement>>('preview-ref')!
+const containerRef = useTemplateRef('container')
+const previewRef = inject(injectKeyPreviewRef)!
 
 // mobile only
-const store = inject(injectKeyStore)!
-const showOutput = toRef(store, 'showOutput')
+const { store, splitPaneOptions } = inject(injectKeyProps)!
 
 const state = reactive({
   dragging: false,
@@ -44,11 +35,11 @@ function dragStart(e: MouseEvent) {
 }
 
 function dragMove(e: MouseEvent) {
-  if (state.dragging) {
+  if (containerRef.value && state.dragging) {
     const position = isVertical.value ? e.pageY : e.pageX
     const totalSize = isVertical.value
-      ? container.value.offsetHeight
-      : container.value.offsetWidth
+      ? containerRef.value.offsetHeight
+      : containerRef.value.offsetWidth
     const dp = position - startPosition
     state.split = startSplit + +((dp / totalSize) * 100).toFixed(2)
 
@@ -61,7 +52,8 @@ function dragEnd() {
 }
 
 function changeViewSize() {
-  const el = toValue(previewRef)
+  const el = previewRef.value
+  if (!el) return
   state.viewHeight = el.offsetHeight
   state.viewWidth = el.offsetWidth
 }
@@ -73,7 +65,7 @@ function changeViewSize() {
     class="split-pane"
     :class="{
       dragging: state.dragging,
-      'show-output': showOutput,
+      'show-output': store.showOutput,
       vertical: isVertical,
     }"
     @mousemove="dragMove"
@@ -97,8 +89,12 @@ function changeViewSize() {
       <slot name="right" />
     </div>
 
-    <button class="toggler" @click="showOutput = !showOutput">
-      {{ showOutput ? '< Code' : 'Output >' }}
+    <button class="toggler" @click="store.showOutput = !store.showOutput">
+      {{
+        store.showOutput
+          ? splitPaneOptions?.codeTogglerText || '< Code'
+          : splitPaneOptions?.outputTogglerText || 'Output >'
+      }}
     </button>
   </div>
 </template>

@@ -67,6 +67,13 @@ const App = {
         },
         // showCompileOutput: false,
         // showImportMap: false
+        editorOptions: {
+          autoSaveText: '💾',
+          monacoOptions: {
+            // wordWrap: 'on',
+          },
+        },
+        // autoSave: false,
       })
   },
 }
